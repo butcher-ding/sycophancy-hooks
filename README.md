@@ -52,23 +52,33 @@ Extracts the `<correction>` block from the AI response, validates required field
 
 ## Prerequisites
 
-- **macOS or Linux** (POSIX `fcntl` required for file locking — **Windows is not supported**)
+- **macOS, Linux, or Windows** (cross-platform — uses `O_EXCL` sentinel locking, no native deps)
 - **Node.js 16+**
-- **Python 3** (used for file locking via `fcntl`)
 - **Claude Code 2.x**
 
 ## Installation
 
 ```bash
-git clone https://github.com/YOUR_GITHUB_USERNAME/sycophancy-hooks.git  # ← replace with your GitHub username
+git clone https://github.com/butcher-ding/sycophancy-hooks.git
 cd sycophancy-hooks
-chmod +x hooks/*.js
+npm install          # installs no runtime deps; sets up scripts
+npm test             # verify parser tests pass on your machine
+chmod +x hooks/*.js  # macOS / Linux only
 
-# Symlink hooks into Claude Code
+# Symlink hooks into Claude Code (macOS / Linux)
 ln -s "$(pwd)/hooks/bias-detect.js" ~/.claude/hooks/bias-detect.js
 ln -s "$(pwd)/hooks/bias-write.js" ~/.claude/hooks/bias-write.js
 ln -s "$(pwd)/hooks/correction-detect.js" ~/.claude/hooks/correction-detect.js
 ln -s "$(pwd)/hooks/correction-write.js" ~/.claude/hooks/correction-write.js
+```
+
+**Windows (PowerShell as Admin):**
+```powershell
+cd <repo-path>
+New-Item -ItemType SymbolicLink -Path "$env:USERPROFILE\.claude\hooks\bias-detect.js" -Target "$PWD\hooks\bias-detect.js"
+New-Item -ItemType SymbolicLink -Path "$env:USERPROFILE\.claude\hooks\bias-write.js" -Target "$PWD\hooks\bias-write.js"
+New-Item -ItemType SymbolicLink -Path "$env:USERPROFILE\.claude\hooks\correction-detect.js" -Target "$PWD\hooks\correction-detect.js"
+New-Item -ItemType SymbolicLink -Path "$env:USERPROFILE\.claude\hooks\correction-write.js" -Target "$PWD\hooks\correction-write.js"
 ```
 
 > **New Claude Code install?** If `~/.claude/settings.json` doesn't exist yet, create it first with `{}` as content, then add the hook entries below.
@@ -165,9 +175,9 @@ Contributions welcome. Before sending a PR:
 
 1. **Open an issue first** for non-trivial changes — discussion before code saves round-trips.
 2. **Keep changes focused** — one concern per PR. Don't bundle unrelated fixes.
-3. **Run `node -c hooks/*.js`** to verify syntax.
-4. **Run tests**: `node tests/parseMarkdownBias.test.js` (add new tests when touching parser logic).
-5. **Test on macOS or Linux** — Windows is explicitly unsupported.
+3. **Run `npm run lint:syntax`** to verify syntax.
+4. **Run tests**: `npm test` (add new tests when touching parser logic).
+5. **Test on all supported platforms if you can** — macOS, Linux, Windows. CI runs all three on every PR, but local test is still preferred for fast iteration.
 6. **Respect the bilingual design** — if you add user-facing strings, include both English and Traditional Chinese where existing messages do. Pure-English PRs for non-message code are fine.
 
 For `adapters/` contributions, see `adapters/README.md` for the interface draft.

@@ -40,7 +40,7 @@ module.exports = {
 };
 ```
 
-All operations are synchronous. Windows is not supported (requires POSIX fcntl for file locking).
+All operations are synchronous. Cross-platform: macOS, Linux, and Windows all supported (locking uses a `.lock` sentinel file via `O_EXCL`, not POSIX `fcntl`).
 
 ## Contributing a new adapter
 

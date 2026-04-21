@@ -2,7 +2,7 @@
 // adapters/simple-jsonl.js
 //
 // Default adapter: writes audit records as JSONL to `$AI_AUDIT_DIR/<type>.jsonl`.
-// Uses POSIX fcntl for advisory locking (Windows not supported).
+// Uses a cross-platform `.lock` sentinel for advisory locking.
 //
 // This is a reference implementation. The core hooks currently write inline;
 // this adapter provides the same behavior as a standalone module for users
@@ -11,11 +11,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { execFileSync } = require('child_process');
-
-if (process.platform === 'win32') {
-  throw new Error('simple-jsonl adapter requires POSIX fcntl (Windows not supported).');
-}
+const { appendWithLock } = require('../lib/append-with-lock');
 
 const AUDIT_DIR = process.env.AI_AUDIT_DIR || path.join(os.homedir(), '.ai-audit');
 
@@ -27,28 +23,6 @@ const PATHS = {
   correction_log: process.env.CORRECTIONS_LOG_PATH || path.join(AUDIT_DIR, 'corrections.jsonl'),
   correction_skipped: process.env.CORRECTIONS_SKIPPED_PATH || path.join(AUDIT_DIR, 'corrections-skipped.jsonl')
 };
-
-function appendWithLock(filePath, line) {
-  const dir = path.dirname(filePath);
-  try { fs.mkdirSync(dir, { recursive: true }); } catch {}
-  const pythonScript = `
-import fcntl, sys, os
-path = sys.argv[1]
-line = sys.stdin.read()
-with open(path, 'a') as f:
-    fcntl.flock(f, fcntl.LOCK_EX)
-    try:
-        f.write(line)
-    finally:
-        fcntl.flock(f, fcntl.LOCK_UN)
-# Tighten permissions: audit files contain prompt previews (sensitive)
-os.chmod(path, 0o600)
-`.trim();
-  execFileSync('python3', ['-c', pythonScript, filePath], {
-    input: line,
-    stdio: ['pipe', 'ignore', 'inherit']
-  });
-}
 
 function readJSONL(filePath) {
   if (!fs.existsSync(filePath)) return [];

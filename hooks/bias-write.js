@@ -9,16 +9,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { execFileSync } = require('child_process');
-
-// Platform check: fcntl-based file locking requires POSIX
-if (process.platform === 'win32') {
-  process.stderr.write(
-    'sycophancy-hooks: Windows is not supported (requires POSIX fcntl for file locking).\n' +
-    'Please run on macOS or Linux.\n'
-  );
-  process.exit(0);
-}
+const { appendWithLock } = require('../lib/append-with-lock');
 
 const STATE_DIR = path.join(os.homedir(), '.claude', 'hooks', 'state');
 
@@ -436,26 +427,3 @@ function extractBiasBlock(text) {
   return match[1].replace(/^```json\s*/i, '').replace(/\s*```\s*$/, '').trim();
 }
 
-function appendWithLock(filePath, line) {
-  const dir = path.dirname(filePath);
-  try { fs.mkdirSync(dir, { recursive: true }); } catch {}
-  const pythonScript = `
-import fcntl, sys, os
-path = sys.argv[1]
-line = sys.stdin.read()
-with open(path, 'a') as f:
-    fcntl.flock(f, fcntl.LOCK_EX)
-    try:
-        f.write(line)
-    finally:
-        fcntl.flock(f, fcntl.LOCK_UN)
-# Tighten permissions: audit files contain prompt previews (sensitive)
-os.chmod(path, 0o600)
-`.trim();
-  // Use execFileSync to pass args directly without shell interpolation
-  // (prevents injection via env-var path with special chars)
-  execFileSync('python3', ['-c', pythonScript, filePath], {
-    input: line,
-    stdio: ['pipe', 'ignore', 'inherit']
-  });
-}

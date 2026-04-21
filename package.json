@@ -1,0 +1,39 @@
+{
+  "name": "sycophancy-hooks",
+  "version": "0.1.0",
+  "description": "Execution-layer enforcement for anti-sycophancy in Claude Code.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/butcher-ding/sycophancy-hooks.git"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=16"
+  },
+  "scripts": {
+    "test": "node tests/parseMarkdownBias.test.js",
+    "lint:syntax": "node --check hooks/bias-detect.js && node --check hooks/bias-write.js && node --check hooks/correction-detect.js && node --check hooks/correction-write.js && node --check adapters/simple-jsonl.js && node --check adapters/shared-memory.js && node --check lib/append-with-lock.js"
+  },
+  "files": [
+    "hooks/",
+    "lib/",
+    "adapters/",
+    "examples/",
+    "README.md",
+    "README.zh-TW.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "claude-code",
+    "hooks",
+    "sycophancy",
+    "ai-safety",
+    "bias",
+    "audit"
+  ],
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ]
+}

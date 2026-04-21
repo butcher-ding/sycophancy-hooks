@@ -26,11 +26,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { execFileSync } = require('child_process');
-
-if (process.platform === 'win32') {
-  throw new Error('shared-memory adapter requires POSIX fcntl (Windows not supported).');
-}
+const { appendWithLock } = require('../lib/append-with-lock');
 
 const SHARED_MEMORY_DIR = process.env.SHARED_MEMORY_DIR || path.join(os.homedir(), '.shared-memory');
 const LESSONS_DIR = path.join(SHARED_MEMORY_DIR, 'domains', 'lessons');
@@ -45,28 +41,6 @@ const PATHS = {
   lessons_index: path.join(LESSONS_DIR, '_index.md'),
   memory_index: path.join(SHARED_MEMORY_DIR, 'MEMORY.md')
 };
-
-function appendWithLock(filePath, line) {
-  const dir = path.dirname(filePath);
-  try { fs.mkdirSync(dir, { recursive: true }); } catch {}
-  const pythonScript = `
-import fcntl, sys, os
-path = sys.argv[1]
-line = sys.stdin.read()
-with open(path, 'a') as f:
-    fcntl.flock(f, fcntl.LOCK_EX)
-    try:
-        f.write(line)
-    finally:
-        fcntl.flock(f, fcntl.LOCK_UN)
-# Tighten permissions: audit files contain prompt previews (sensitive)
-os.chmod(path, 0o600)
-`.trim();
-  execFileSync('python3', ['-c', pythonScript, filePath], {
-    input: line,
-    stdio: ['pipe', 'ignore', 'inherit']
-  });
-}
 
 function readJSONL(filePath) {
   if (!fs.existsSync(filePath)) return [];
