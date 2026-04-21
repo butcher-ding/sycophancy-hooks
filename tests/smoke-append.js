@@ -3,8 +3,8 @@
 //
 // Cross-platform smoke test for lib/append-with-lock.
 // Verifies sequential append, truly concurrent append (5 child processes
-// spawned in parallel via async spawn), lock cleanup, JSON integrity, and
-// assertSafePath rejection of sensitive paths.
+// spawned in parallel via async spawn), lock cleanup, JSON integrity,
+// assertSafePath allowlist semantics, and symlink-bypass resistance.
 
 const fs = require('fs');
 const os = require('os');
@@ -100,23 +100,76 @@ async function main() {
   if (fs.existsSync(lockFile)) fail('concurrent append: lock file leaked');
   cleanup();
 
-  // 3. assertSafePath rejects sensitive paths
-  const homeAwsPath = path.join(os.homedir(), '.aws', 'credentials');
-  expectThrow(() => assertSafePath(homeAwsPath), 'sensitive directory', 'deny .aws');
-
-  const homeSshPath = path.join(os.homedir(), '.ssh', 'authorized_keys');
-  expectThrow(() => assertSafePath(homeSshPath), 'sensitive directory', 'deny .ssh');
-
-  // 4. assertSafePath rejects paths outside allowed roots
-  const rootPath = process.platform === 'win32' ? 'C:\\Windows\\system32\\evil.jsonl' : '/etc/evil.jsonl';
-  expectThrow(() => assertSafePath(rootPath), 'outside allowed roots', 'deny /etc or system32');
-
-  // 5. assertSafePath allows home and tmpdir
+  // 3. assertSafePath: allowlist accepts default roots
   try {
     assertSafePath(path.join(os.homedir(), '.ai-audit', 'bias-queue.jsonl'));
+    assertSafePath(path.join(os.homedir(), '.shared-memory', 'domains', 'lessons', 'bias-queue.jsonl'));
     assertSafePath(tmpFile);
   } catch (e) {
     fail(`safe path wrongly rejected: ${e.message}`);
+  }
+
+  // 4. assertSafePath: rejects paths outside allowed roots
+  const outsideHome = path.join(os.homedir(), 'Documents', 'evil.jsonl');
+  expectThrow(() => assertSafePath(outsideHome), 'outside allowed roots', 'deny ~/Documents');
+
+  const sensitiveHome = path.join(os.homedir(), '.ssh', 'authorized_keys');
+  expectThrow(() => assertSafePath(sensitiveHome), 'outside allowed roots', 'deny ~/.ssh');
+
+  const rootPath = process.platform === 'win32'
+    ? 'C:\\Windows\\system32\\evil.jsonl'
+    : '/etc/evil.jsonl';
+  expectThrow(() => assertSafePath(rootPath), 'outside allowed roots', 'deny /etc or system32');
+
+  // 5. SYCOPHANCY_ALLOW_ROOTS extends the allowlist
+  // Use a home-rooted custom dir (not under tmpdir, which is already allowed).
+  const customRoot = path.join(os.homedir(), `sh-custom-${process.pid}`);
+  try { fs.mkdirSync(customRoot, { recursive: true }); } catch {}
+  const customFile = path.join(customRoot, 'x.jsonl');
+  try {
+    expectThrow(
+      () => assertSafePath(customFile),
+      'outside allowed roots',
+      'custom root not in default allowlist (pre-env)'
+    );
+    process.env.SYCOPHANCY_ALLOW_ROOTS = customRoot;
+    try {
+      assertSafePath(customFile);
+    } catch (e) {
+      fail(`SYCOPHANCY_ALLOW_ROOTS failed to extend allowlist: ${e.message}`);
+    }
+  } finally {
+    delete process.env.SYCOPHANCY_ALLOW_ROOTS;
+    try { fs.rmdirSync(customRoot); } catch {}
+  }
+
+  // 6. Symlink bypass resistance
+  // Build a symlink inside tmpdir that points to a sensitive dir. If we can't
+  // create symlinks on this platform (e.g. Windows without admin), skip.
+  const symRoot = path.join(os.tmpdir(), `sh-symtest-${process.pid}`);
+  const symTarget = path.join(os.homedir(), '.ssh'); // allowed to not exist
+  const symLink = path.join(symRoot, 'trap');
+  try {
+    fs.mkdirSync(symRoot, { recursive: true });
+    fs.symlinkSync(symTarget, symLink, 'dir');
+  } catch (e) {
+    console.log(`smoke: skipping symlink test (${e.code || e.message})`);
+    try { fs.rmSync(symRoot, { recursive: true, force: true }); } catch {}
+    console.log(`smoke OK (platform=${process.platform}, node=${process.version})`);
+    return;
+  }
+  try {
+    // Writing via the symlink should either be rejected (target ~/.ssh is
+    // outside allowlist) OR accepted only if ~/.ssh happens to be under some
+    // allow root (it never is by default). We expect rejection.
+    const attacked = path.join(symLink, 'authorized_keys');
+    expectThrow(
+      () => assertSafePath(attacked),
+      'outside allowed roots',
+      'symlink bypass must be rejected'
+    );
+  } finally {
+    try { fs.rmSync(symRoot, { recursive: true, force: true }); } catch {}
   }
 
   console.log(`smoke OK (platform=${process.platform}, node=${process.version})`);

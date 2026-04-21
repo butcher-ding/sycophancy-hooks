@@ -133,6 +133,18 @@ Environment variables (all optional, sensible defaults):
 | `CORRECTIONS_SKIPPED_PATH` | `$AI_AUDIT_DIR/corrections-skipped.jsonl` | AI-judged non-corrections |
 | `BIAS_ENFORCEMENT_DELAY_DAYS` | `14` | Grace period (days after first use) before 3-miss red escalation activates |
 | `BIAS_ENFORCE_NOW` | (unset) | Set to `1` to skip grace period and enforce immediately |
+| `SYCOPHANCY_ALLOW_ROOTS` | (unset) | Extend the path allowlist. `PATH`-style separator (`:` POSIX, `;` Windows). Writes outside the allowlist throw. |
+
+### Path allowlist
+
+All audit writes are confined to an explicit allowlist of root directories:
+
+- `~/.ai-audit/` — default log root
+- `~/.shared-memory/` — used by `shared-memory` adapter
+- `os.tmpdir()` — for test scratch space
+- Anything in `$SYCOPHANCY_ALLOW_ROOTS` (if set)
+
+Parent directories are resolved via `realpath` before the allowlist check, so symlinked paths cannot redirect writes into `~/.ssh/`, `~/.aws/`, or similar. Setting `AI_AUDIT_DIR` to a path outside the allowlist (e.g. `~/Documents/audit`) will throw on first write — extend the allowlist via `SYCOPHANCY_ALLOW_ROOTS` instead.
 
 ## ⚠️ Privacy note
 
@@ -140,7 +152,8 @@ Environment variables (all optional, sensible defaults):
 - `git push` the `$AI_AUDIT_DIR` directory (the default `.gitignore` excludes `.ai-audit/` and `*.jsonl` — keep it that way)
 - Sync `$AI_AUDIT_DIR` via Dropbox / iCloud / OneDrive if your prompts contain secrets (API keys, passwords, confidential code)
 - Share the audit files with anyone unless you've reviewed them
-- Set `AI_AUDIT_DIR` or other path env vars to sensitive locations like `~/.ssh/`, `/etc/`, or shared directories — the env var directly controls the write target, and misconfiguration writes to unexpected places
+
+**Windows users:** POSIX `0600` permissions cannot isolate files from other local Windows accounts. Audit files on a shared Windows machine are not user-private at the filesystem level. A one-time stderr warning is printed on first use; delete `~/.sycophancy-hooks-winwarned` to re-display.
 
 The audit files are meant for **local** review only.
 

@@ -133,6 +133,18 @@ New-Item -ItemType SymbolicLink -Path "$env:USERPROFILE\.claude\hooks\correction
 | `CORRECTIONS_SKIPPED_PATH` | `$AI_AUDIT_DIR/corrections-skipped.jsonl` | AI 判定非糾正 |
 | `BIAS_ENFORCEMENT_DELAY_DAYS` | `14` | 首次使用起算的寬限期天數；超過後 3 次漏記才觸發紅色升級警告 |
 | `BIAS_ENFORCE_NOW` | （未設定）| 設為 `1` 可跳過寬限期，立即強制 |
+| `SYCOPHANCY_ALLOW_ROOTS` | （未設定）| 擴充路徑白名單。`PATH` 風格分隔符（POSIX `:`、Windows `;`）。寫入白名單外的路徑會直接拋錯。 |
+
+### 路徑白名單
+
+所有 audit 寫入限制在明確白名單內：
+
+- `~/.ai-audit/` — 預設日誌根目錄
+- `~/.shared-memory/` — `shared-memory` adapter 使用
+- `os.tmpdir()` — 測試用暫存
+- `$SYCOPHANCY_ALLOW_ROOTS` 裡面的路徑（若有設）
+
+父目錄會先經 `realpath` 展開再比對白名單，所以 symlink 無法將寫入重導到 `~/.ssh/`、`~/.aws/` 等敏感位置。若把 `AI_AUDIT_DIR` 設到白名單外（例如 `~/Documents/audit`），第一次寫入會拋錯——請改用 `SYCOPHANCY_ALLOW_ROOTS` 擴充白名單。
 
 ## ⚠️ 隱私提醒
 
@@ -140,7 +152,8 @@ New-Item -ItemType SymbolicLink -Path "$env:USERPROFILE\.claude\hooks\correction
 - `git push` 你的 `$AI_AUDIT_DIR` 目錄（預設 `.gitignore` 已擋 `.ai-audit/` 和 `*.jsonl`，維持現況即可）
 - 用 Dropbox / iCloud / OneDrive 同步 `$AI_AUDIT_DIR`，若你的 prompt 含 API key、密碼、機密程式碼
 - 把 audit 檔案分享給別人，除非你已逐行檢查過
-- 把 `AI_AUDIT_DIR` 或其他路徑 env var 設成 `~/.ssh/`、`/etc/`、共用目錄等敏感位置 — env var 直接決定寫入目標，寫錯會寫到奇怪的地方
+
+**Windows 使用者**：POSIX `0600` 權限無法隔離同機器其他 Windows 帳號。共用 Windows 機器上 audit 檔案在檔案系統層級不是使用者私有的。首次使用會在 stderr 印一次性警告；刪掉 `~/.sycophancy-hooks-winwarned` 可再顯示。
 
 audit 檔案只給**本機**審閱用。
 
