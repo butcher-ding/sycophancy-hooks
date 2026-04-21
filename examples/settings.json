@@ -1,0 +1,20 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          { "type": "command", "command": "~/.claude/hooks/bias-detect.js" },
+          { "type": "command", "command": "~/.claude/hooks/correction-detect.js" }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "~/.claude/hooks/bias-write.js" },
+          { "type": "command", "command": "~/.claude/hooks/correction-write.js" }
+        ]
+      }
+    ]
+  }
+}
