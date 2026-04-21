@@ -147,7 +147,9 @@ async function main() {
   // Build a symlink inside tmpdir that points to a sensitive dir. If we can't
   // create symlinks on this platform (e.g. Windows without admin), skip.
   const symRoot = path.join(os.tmpdir(), `sh-symtest-${process.pid}`);
-  const symTarget = path.join(os.homedir(), '.ssh'); // allowed to not exist
+  // Target must exist (so realpath resolves) AND be outside the allowlist.
+  // Homedir itself fits: always exists, never in default allowlist.
+  const symTarget = os.homedir();
   const symLink = path.join(symRoot, 'trap');
   try {
     fs.mkdirSync(symRoot, { recursive: true });
