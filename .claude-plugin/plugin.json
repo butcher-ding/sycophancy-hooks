@@ -7,10 +7,7 @@
     "url": "https://github.com/butcher-ding"
   },
   "homepage": "https://github.com/butcher-ding/sycophancy-hooks",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/butcher-ding/sycophancy-hooks.git"
-  },
+  "repository": "https://github.com/butcher-ding/sycophancy-hooks.git",
   "license": "MIT",
   "keywords": [
     "sycophancy",
@@ -19,7 +16,5 @@
     "anti-sycophancy",
     "ai-safety",
     "claude-code"
-  ],
-  "category": "quality",
-  "hooks": "hooks/hooks.json"
+  ]
 }
