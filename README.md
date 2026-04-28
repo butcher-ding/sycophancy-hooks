@@ -56,7 +56,22 @@ Extracts the `<correction>` block from the AI response, validates required field
 - **Node.js 16+**
 - **Claude Code 2.x**
 
-## Installation
+## Installation (Plugin — recommended for Claude Code 2.1+)
+
+One-command install via Claude Code Plugin system:
+
+```
+/plugin marketplace add butcher-ding/sycophancy-hooks
+/plugin install sycophancy-hooks
+```
+
+The plugin auto-loads `.claude-plugin/plugin.json` (manifest) and `hooks/hooks.json` (hook configuration). No manual `~/.claude/settings.json` editing, no symlinks.
+
+After install, restart Claude Code. The 4 hooks (bias-detect / bias-write / correction-detect / correction-write) register automatically.
+
+---
+
+## Installation (manual — for Claude Code 1.x or if you prefer)
 
 ```bash
 git clone https://github.com/butcher-ding/sycophancy-hooks.git

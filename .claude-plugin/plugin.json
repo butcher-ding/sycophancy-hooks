@@ -1,0 +1,25 @@
+{
+  "name": "sycophancy-hooks",
+  "description": "Execution-layer enforcement for anti-sycophancy in Claude Code. Forces AI agents to self-audit for sycophancy and cognitive bias by blocking responses that don't meet format requirements.",
+  "version": "0.1.0",
+  "author": {
+    "name": "butcher-ding",
+    "url": "https://github.com/butcher-ding"
+  },
+  "homepage": "https://github.com/butcher-ding/sycophancy-hooks",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/butcher-ding/sycophancy-hooks.git"
+  },
+  "license": "MIT",
+  "keywords": [
+    "sycophancy",
+    "bias",
+    "self-audit",
+    "anti-sycophancy",
+    "ai-safety",
+    "claude-code"
+  ],
+  "category": "quality",
+  "hooks": "hooks/hooks.json"
+}

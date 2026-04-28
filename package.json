@@ -15,6 +15,7 @@
     "lint:syntax": "node --check hooks/bias-detect.js && node --check hooks/bias-write.js && node --check hooks/correction-detect.js && node --check hooks/correction-write.js && node --check adapters/simple-jsonl.js && node --check adapters/shared-memory.js && node --check lib/append-with-lock.js"
   },
   "files": [
+    ".claude-plugin/",
     "hooks/",
     "lib/",
     "adapters/",
