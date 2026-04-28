@@ -159,23 +159,17 @@ test('bullet with no arrow (just content)', () => {
   assert.strictEqual(r.counter_evidence[0].action_or_reason, '');
 });
 
-// Known limitation: `**skip**` anywhere in content triggers skip mode.
-// See: TODO — open GitHub issue after repo is public, update this URL
-// Correct behavior should be: only recognize **skip** as the first/only section title.
-xtest(
-  'fake skip inside content should NOT trigger skip (known bug)',
-  () => {
-    const text = `
+// Fixed: **skip** must stand alone on its own line to count as a skip marker.
+// Embedded **skip** inside a sentence no longer triggers skip mode.
+test('fake skip inside content should NOT trigger skip', () => {
+  const text = `
 **信心**：medium — note: I didn't **skip** this seriously
 
 **判定**：pass
 `.trim();
-    const r = parseMarkdownBias(text);
-    // Once fixed, this assertion should pass:
-    assert.ok(r.skip !== true, 'embedded **skip** should not trigger skip mode');
-  },
-  'known parser limitation — **skip** anywhere triggers skip. See issue tracker.'
-);
+  const r = parseMarkdownBias(text);
+  assert.ok(r.skip !== true, 'embedded **skip** should not trigger skip mode');
+});
 
 test('fuzz: malformed input does not crash', () => {
   const inputs = [
@@ -194,5 +188,5 @@ test('fuzz: malformed input does not crash', () => {
 });
 
 // === Summary ===
-console.log(`\n${passed} passed, ${failed} failed, 1 skipped (known limitation)`);
+console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);

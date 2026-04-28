@@ -16,13 +16,21 @@ function ensureDir(dir) {
   try { fs.mkdirSync(dir, { recursive: true }); } catch {}
 }
 
+// session_id comes from hook payload — sanitize before using in path.join
+// to block path traversal ("../") and null bytes.
+function sanitizeSessionId(raw) {
+  const s = String(raw || '');
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(s)) return 'unknown';
+  return s;
+}
+
 let input = '';
 process.stdin.setEncoding('utf8');
 process.stdin.on('data', (c) => { input += c; });
 process.stdin.on('end', () => {
   try {
     const payload = JSON.parse(input || '{}');
-    const sessionId = payload.session_id || 'unknown';
+    const sessionId = sanitizeSessionId(payload.session_id);
     const userPrompt = (payload.prompt || payload.user_prompt || '').toString();
 
     if (!userPrompt) process.exit(0);
@@ -51,8 +59,10 @@ process.stdin.on('end', () => {
       const missingState = JSON.parse(fs.readFileSync(missingPath, 'utf8'));
       if ((missingState.count || 0) >= 3) {
         const previews = missingState.previews || [];
-        const previewList = previews.map((p, i) => `  ${i + 1}. ${p}`).join('\n');
-        escalation = `\n🚨🚨🚨 Escalation: ${missingState.count} missed corrections accumulated 🚨🚨🚨\n升級警告：已累積 ${missingState.count} 次漏記糾正\nLast ${previews.length} user previews:\n${previewList}\n\nThis turn MUST emit <correction> block or explicit skip block.\n\n`;
+        // Don't echo preview content into stdout — stdout is injected into the
+        // model's next-turn prompt, so preview text containing instruction-like
+        // strings would become a prompt-injection amplifier. Show counts only.
+        escalation = `\n🚨🚨🚨 Escalation: ${missingState.count} missed corrections accumulated (${previews.length} recorded) 🚨🚨🚨\n升級警告：已累積 ${missingState.count} 次漏記糾正\n\nThis turn MUST emit <correction> block or explicit skip block. (Preview content is in stderr / session log.)\n\n`;
       }
     } catch {}
 

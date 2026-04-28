@@ -13,6 +13,32 @@ const { appendWithLock } = require('../lib/append-with-lock');
 
 const STATE_DIR = path.join(os.homedir(), '.claude', 'hooks', 'state');
 
+// session_id comes from hook payload — sanitize before using in path.join
+// to block path traversal ("../") and null bytes.
+function sanitizeSessionId(raw) {
+  const s = String(raw || '');
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(s)) return 'unknown';
+  return s;
+}
+
+// transcript_path is user-controlled via hook payload. Block paths outside
+// Claude's project/tmp dirs so a poisoned hook input can't point us at /etc/.
+function isTranscriptPathSafe(tp) {
+  if (typeof tp !== 'string' || !tp || !path.isAbsolute(tp)) return false;
+  const allowRoots = [
+    path.join(os.homedir(), '.claude', 'projects'),
+    os.tmpdir()
+  ].map((r) => {
+    try { return fs.realpathSync(r); } catch { return path.resolve(r); }
+  });
+  let real;
+  try { real = fs.realpathSync(tp); } catch { return false; }
+  return allowRoots.some((root) => {
+    const rel = path.relative(root, real);
+    return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
+  });
+}
+
 // 可設定的記憶路徑（env var）/ Configurable memory paths via env vars
 const AUDIT_DIR = process.env.AI_AUDIT_DIR || path.join(os.homedir(), '.ai-audit');
 const BIAS_LOG_PATH = process.env.BIAS_LOG_PATH || path.join(AUDIT_DIR, 'bias-log.jsonl');
@@ -48,7 +74,10 @@ function resetMissing(sessionId) {
 // Returns { confidence, counter_evidence: [{content, status, action_or_reason}], independent_view, reversal_check, verdict }
 // Or { skip: true, reason: ... }
 function parseMarkdownBias(text) {
-  if (/\*\*\s*skip\s*\*\*/i.test(text)) {
+  // Only treat **skip** as a skip marker when it stands alone on its own line
+  // (section header, not embedded inside content). This avoids false positives
+  // when a user's bias entry discusses skipping, e.g. "I didn't **skip** this".
+  if (/^\s*\*\*\s*skip\s*\*\*\s*$/im.test(text)) {
     const reasonMatch = text.match(/(?:理由|Reason)\s*[:：]\s*([\s\S]+?)(?=\n\*\*|$)/i);
     return {
       skip: true,
@@ -144,7 +173,7 @@ process.stdin.on('data', (c) => { input += c; });
 process.stdin.on('end', () => {
   try {
     const payload = JSON.parse(input || '{}');
-    const sessionId = payload.session_id || 'unknown';
+    const sessionId = sanitizeSessionId(payload.session_id);
     const transcriptPath = payload.transcript_path;
 
     const flagPath = path.join(STATE_DIR, `pending-bias.${sessionId}`);
@@ -154,8 +183,8 @@ process.stdin.on('end', () => {
     try { flagData = JSON.parse(fs.readFileSync(flagPath, 'utf8')); } catch {}
     try { fs.unlinkSync(flagPath); } catch {}
 
-    if (!transcriptPath || !fs.existsSync(transcriptPath)) {
-      process.stderr.write('bias-write: transcript not found, skip\n');
+    if (!isTranscriptPathSafe(transcriptPath)) {
+      process.stderr.write('bias-write: transcript path not safe, skip\n');
       process.exit(0);
     }
 
