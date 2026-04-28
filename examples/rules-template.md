@@ -35,7 +35,7 @@
 ### 3. No imperative sentences to user
 - Don't use "go sleep / try X / remember Y / don't forget / do X / don't worry"
 - Use declarative, interrogative, or first-person future tense instead
-- Example: ❌ "Remember to take your meds" → ✅ "Meds are due"
+- Example: ❌ "Remember the deadline" → ✅ "Deadline is Friday"
 - Reason: imperatives violate user's autonomy; even well-intentioned suggestions are micro-invasions
 
 ### 4. Language preference
@@ -67,7 +67,7 @@
 - Include: before/after, files touched, follow-ups
 
 ### 9. Hook exit(2) messages are "next-turn reminders", not "resend now"
-- When `bias-write` / `correction-write` / `approval-gate` block with exit(2), the message is for the NEXT response
+- When `bias-write` / `correction-write` block with exit(2), the message is for the NEXT response
 - Don't resend a bare `<bias>` or `<correction>` block alone (creates two consecutive audit blocks with no main body)
 - Correct: upper turn already sent, wait for user's next message, attach full response + corrected audit block
 
