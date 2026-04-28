@@ -1,6 +1,6 @@
 {
   "name": "sycophancy-hooks",
-  "description": "Execution-layer enforcement for anti-sycophancy in Claude Code. Forces AI agents to self-audit for sycophancy and cognitive bias by blocking responses that don't meet format requirements.",
+  "description": "Anti-sycophancy enforcement for Claude Code. Detects judgment-type prompts, requires structured self-audit blocks, and flags missing or malformed responses via next-turn reminder (exit(2) hint, not current-response blocking).",
   "version": "0.1.0",
   "author": {
     "name": "butcher-ding",

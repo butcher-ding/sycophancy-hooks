@@ -58,6 +58,8 @@ Extracts the `<correction>` block from the AI response, validates required field
 
 ## Installation (Plugin — recommended for Claude Code 2.1+)
 
+> **Requires Claude Code 2.1+** — check with `claude --version`. For older versions or if you prefer manual setup, jump to "Manual install" below.
+
 One-command install via Claude Code Plugin system:
 
 ```
@@ -68,6 +70,14 @@ One-command install via Claude Code Plugin system:
 The plugin auto-loads `.claude-plugin/plugin.json` (manifest) and `hooks/hooks.json` (hook configuration). No manual `~/.claude/settings.json` editing, no symlinks.
 
 After install, restart Claude Code. The 4 hooks (bias-detect / bias-write / correction-detect / correction-write) register automatically.
+
+### Privacy & Data
+
+All hooks run locally. **No network calls, no telemetry.**
+
+The detect hooks save up to 400 characters of your user prompt to `~/.claude/hooks/state/pending-*.<sessionId>` (mode 0600) when they detect judgment or correction trigger patterns. The preview is later included in `~/.ai-audit/bias-queue.jsonl` and `corrections-queue.jsonl` for human audit.
+
+If you trigger judgment on prompts containing secrets (e.g., asking AI to evaluate a config with API keys), those snippets land in plain text on local disk.
 
 ---
 

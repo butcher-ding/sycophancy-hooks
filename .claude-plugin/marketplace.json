@@ -1,0 +1,29 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "sycophancy-hooks",
+  "description": "Single-plugin marketplace for sycophancy-hooks: execution-layer enforcement for anti-sycophancy in Claude Code",
+  "owner": {
+    "name": "butcher-ding",
+    "url": "https://github.com/butcher-ding"
+  },
+  "plugins": [
+    {
+      "name": "sycophancy-hooks",
+      "description": "Anti-sycophancy enforcement for Claude Code. Detects judgment-type prompts, requires structured self-audit blocks, and flags missing or malformed responses via next-turn reminder (exit(2) hint, not current-response blocking).",
+      "author": {
+        "name": "butcher-ding"
+      },
+      "category": "productivity",
+      "keywords": [
+        "sycophancy",
+        "bias",
+        "self-audit",
+        "anti-sycophancy",
+        "ai-safety",
+        "claude-code"
+      ],
+      "source": "./",
+      "homepage": "https://github.com/butcher-ding/sycophancy-hooks"
+    }
+  ]
+}
